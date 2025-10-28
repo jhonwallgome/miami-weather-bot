@@ -1,0 +1,39 @@
+name: Fetch NWS Forecast Every 2 Hours
+
+on:
+  schedule:
+    # Runs every 2 hours: 0:00, 2:00, 4:00, 6:00, 8:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00, 22:00 UTC
+    - cron: '0 */2 * * *'
+  workflow_dispatch:  # Allows manual trigger from Actions tab
+
+jobs:
+  fetch-forecast:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install requests
+      
+      - name: Run forecast script
+        run: |
+          python fetch_forecast.py
+      
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/forecasts.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update forecast - $(date -u +'%Y-%m-%d %H:%M:%S UTC')" && git push)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
